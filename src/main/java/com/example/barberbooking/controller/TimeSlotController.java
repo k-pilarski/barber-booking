@@ -24,10 +24,12 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.transaction.Transactional;
+import lombok.extern.log4j.Log4j2;
 
 @CrossOrigin
 @RestController
 @RequestMapping("/timeslots")
+@Log4j2
 public class TimeSlotController {
 
     @Autowired
@@ -39,7 +41,9 @@ public class TimeSlotController {
     })
     @GetMapping
     public ResponseEntity<List<TimeSlot>> getAllTimeSlots() {
+        log.info("Request: getAllTimeSlots()");
         List<TimeSlot> slots = timeSlotRepo.findAll();
+        log.debug("Retrieved {} time slots", slots.size());
         return new ResponseEntity<>(slots, HttpStatus.OK);
     }
 
@@ -51,9 +55,17 @@ public class TimeSlotController {
     @GetMapping("/{id}")
     public ResponseEntity<TimeSlot> getTimeSlotById(
             @Parameter(description = "ID of the time slot to retrieve") @PathVariable Long id) {
+
+        log.info("Request: getTimeSlotById({})", id);
         Optional<TimeSlot> slot = timeSlotRepo.findById(id);
-        return slot.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
-                   .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+
+        if (slot.isPresent()) {
+            log.debug("Time slot {} found", id);
+            return new ResponseEntity<>(slot.get(), HttpStatus.OK);
+        } else {
+            log.warn("Time slot {} NOT found", id);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
     @Operation(summary = "Create a new time slot", description = "Adds a new time slot to the system.")
@@ -63,7 +75,13 @@ public class TimeSlotController {
     @PostMapping
     public ResponseEntity<TimeSlot> createTimeSlot(
             @Parameter(description = "Time slot object to be created") @RequestBody TimeSlot slot) {
+
+        log.info("Request: createTimeSlot()");
+        log.debug("TimeSlot data: {}", slot);
+
         TimeSlot savedSlot = timeSlotRepo.save(slot);
+        log.info("Time slot created with ID {}", savedSlot.getId());
+
         return new ResponseEntity<>(savedSlot, HttpStatus.CREATED);
     }
 
@@ -76,6 +94,10 @@ public class TimeSlotController {
     public ResponseEntity<TimeSlot> updateTimeSlot(
             @Parameter(description = "ID of the time slot to update") @PathVariable Long id,
             @Parameter(description = "Updated time slot details") @RequestBody TimeSlot slotDetails) {
+
+        log.info("Request: updateTimeSlot({})", id);
+        log.debug("Update data: {}", slotDetails);
+
         Optional<TimeSlot> optionalSlot = timeSlotRepo.findById(id);
         if (optionalSlot.isPresent()) {
             TimeSlot slot = optionalSlot.get();
@@ -83,9 +105,13 @@ public class TimeSlotController {
             slot.setStartTime(slotDetails.getStartTime());
             slot.setEndTime(slotDetails.getEndTime());
             slot.setIsAvailable(slotDetails.getIsAvailable());
+
             TimeSlot updatedSlot = timeSlotRepo.save(slot);
+            log.info("Time slot {} updated successfully", id);
+
             return new ResponseEntity<>(updatedSlot, HttpStatus.OK);
         } else {
+            log.warn("Time slot {} NOT found – cannot update", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -99,10 +125,15 @@ public class TimeSlotController {
     @DeleteMapping("/{id}")
     public ResponseEntity<HttpStatus> deleteTimeSlot(
             @Parameter(description = "ID of the time slot to delete") @PathVariable Long id) {
+
+        log.info("Request: deleteTimeSlot({})", id);
+
         if (timeSlotRepo.existsById(id)) {
             timeSlotRepo.deleteById(id);
+            log.warn("Time slot {} deleted", id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else {
+            log.warn("Time slot {} NOT found – cannot delete", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }

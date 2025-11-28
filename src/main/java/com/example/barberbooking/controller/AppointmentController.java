@@ -24,10 +24,12 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.transaction.Transactional;
+import lombok.extern.log4j.Log4j2;
 
 @CrossOrigin
 @RestController
 @RequestMapping("/appointments")
+@Log4j2
 public class AppointmentController {
 
     @Autowired
@@ -39,7 +41,9 @@ public class AppointmentController {
     })
     @GetMapping
     public ResponseEntity<List<Appointment>> getAllAppointments() {
+        log.info("Request: getAllAppointments() called");
         List<Appointment> appointments = appointmentRepo.findAll();
+        log.debug("Retrieved {} appointments", appointments.size());
         return new ResponseEntity<>(appointments, HttpStatus.OK);
     }
 
@@ -51,9 +55,18 @@ public class AppointmentController {
     @GetMapping("/{id}")
     public ResponseEntity<Appointment> getAppointmentById(
             @Parameter(description = "ID of the appointment to retrieve") @PathVariable Long id) {
+
+        log.info("Request: getAppointmentById({})", id);
+
         Optional<Appointment> appointment = appointmentRepo.findById(id);
-        return appointment.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
-                          .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+
+        if (appointment.isPresent()) {
+            log.debug("Appointment {} found", id);
+            return new ResponseEntity<>(appointment.get(), HttpStatus.OK);
+        } else {
+            log.warn("Appointment {} NOT found", id);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
     @Operation(summary = "Create a new appointment", description = "Adds a new appointment to the system.")
@@ -63,7 +76,14 @@ public class AppointmentController {
     @PostMapping
     public ResponseEntity<Appointment> createAppointment(
             @Parameter(description = "Appointment object to be created") @RequestBody Appointment appointment) {
+
+        log.info("Request: createAppointment()");
+        log.debug("Appointment data: {}", appointment);
+
         Appointment savedAppointment = appointmentRepo.save(appointment);
+
+        log.info("Appointment created with ID {}", savedAppointment.getId());
+
         return new ResponseEntity<>(savedAppointment, HttpStatus.CREATED);
     }
 
@@ -76,18 +96,29 @@ public class AppointmentController {
     public ResponseEntity<Appointment> updateAppointment(
             @Parameter(description = "ID of the appointment to update") @PathVariable Long id,
             @Parameter(description = "Updated appointment details") @RequestBody Appointment appointmentDetails) {
+
+        log.info("Request: updateAppointment({})", id);
+        log.debug("Update data: {}", appointmentDetails);
+
         Optional<Appointment> optionalAppointment = appointmentRepo.findById(id);
+
         if (optionalAppointment.isPresent()) {
             Appointment appointment = optionalAppointment.get();
+
             appointment.setBarber(appointmentDetails.getBarber());
             appointment.setStartTime(appointmentDetails.getStartTime());
             appointment.setEndTime(appointmentDetails.getEndTime());
             appointment.setClientName(appointmentDetails.getClientName());
             appointment.setClientPhone(appointmentDetails.getClientPhone());
             appointment.setStatus(appointmentDetails.getStatus());
+
             Appointment updatedAppointment = appointmentRepo.save(appointment);
+
+            log.info("Appointment {} updated successfully", id);
+
             return new ResponseEntity<>(updatedAppointment, HttpStatus.OK);
         } else {
+            log.warn("Appointment {} NOT found – cannot update", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -101,10 +132,15 @@ public class AppointmentController {
     @DeleteMapping("/{id}")
     public ResponseEntity<HttpStatus> deleteAppointment(
             @Parameter(description = "ID of the appointment to delete") @PathVariable Long id) {
+
+        log.info("Request: deleteAppointment({})", id);
+
         if (appointmentRepo.existsById(id)) {
             appointmentRepo.deleteById(id);
+            log.warn("Appointment {} deleted", id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else {
+            log.warn("Appointment {} NOT found – cannot delete", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }

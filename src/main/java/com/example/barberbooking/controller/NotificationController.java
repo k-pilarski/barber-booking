@@ -24,10 +24,12 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.transaction.Transactional;
+import lombok.extern.log4j.Log4j2;
 
 @CrossOrigin
 @RestController
 @RequestMapping("/notifications")
+@Log4j2
 public class NotificationController {
 
     @Autowired
@@ -39,7 +41,9 @@ public class NotificationController {
     })
     @GetMapping
     public ResponseEntity<List<NotificationLog>> getAllNotifications() {
+        log.info("Request: getAllNotifications()");
         List<NotificationLog> notifications = notificationLogRepo.findAll();
+        log.debug("Retrieved {} notifications", notifications.size());
         return new ResponseEntity<>(notifications, HttpStatus.OK);
     }
 
@@ -51,9 +55,17 @@ public class NotificationController {
     @GetMapping("/{id}")
     public ResponseEntity<NotificationLog> getNotificationById(
             @Parameter(description = "ID of the notification to retrieve") @PathVariable Long id) {
+
+        log.info("Request: getNotificationById({})", id);
         Optional<NotificationLog> notification = notificationLogRepo.findById(id);
-        return notification.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
-                           .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+
+        if (notification.isPresent()) {
+            log.debug("Notification {} found", id);
+            return new ResponseEntity<>(notification.get(), HttpStatus.OK);
+        } else {
+            log.warn("Notification {} NOT found", id);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
     @Operation(summary = "Create a new notification", description = "Adds a new notification to the system.")
@@ -63,7 +75,14 @@ public class NotificationController {
     @PostMapping
     public ResponseEntity<NotificationLog> createNotification(
             @Parameter(description = "Notification object to be created") @RequestBody NotificationLog notification) {
+
+        log.info("Request: createNotification()");
+        log.debug("Notification data: {}", notification);
+
         NotificationLog savedNotification = notificationLogRepo.save(notification);
+
+        log.info("Notification created with ID {}", savedNotification.getId());
+
         return new ResponseEntity<>(savedNotification, HttpStatus.CREATED);
     }
 
@@ -76,7 +95,12 @@ public class NotificationController {
     public ResponseEntity<NotificationLog> updateNotification(
             @Parameter(description = "ID of the notification to update") @PathVariable Long id,
             @Parameter(description = "Updated notification details") @RequestBody NotificationLog details) {
+
+        log.info("Request: updateNotification({})", id);
+        log.debug("Update data: {}", details);
+
         Optional<NotificationLog> optionalNotification = notificationLogRepo.findById(id);
+
         if (optionalNotification.isPresent()) {
             NotificationLog notification = optionalNotification.get();
             notification.setAppointment(details.getAppointment());
@@ -84,9 +108,14 @@ public class NotificationController {
             notification.setPayload(details.getPayload());
             notification.setSentAt(details.getSentAt());
             notification.setStatus(details.getStatus());
+
             NotificationLog updated = notificationLogRepo.save(notification);
+
+            log.info("Notification {} updated successfully", id);
+
             return new ResponseEntity<>(updated, HttpStatus.OK);
         } else {
+            log.warn("Notification {} NOT found – cannot update", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -100,10 +129,15 @@ public class NotificationController {
     @DeleteMapping("/{id}")
     public ResponseEntity<HttpStatus> deleteNotification(
             @Parameter(description = "ID of the notification to delete") @PathVariable Long id) {
+
+        log.info("Request: deleteNotification({})", id);
+
         if (notificationLogRepo.existsById(id)) {
             notificationLogRepo.deleteById(id);
+            log.warn("Notification {} deleted", id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else {
+            log.warn("Notification {} NOT found – cannot delete", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
