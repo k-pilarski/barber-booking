@@ -114,5 +114,23 @@ public class BarberController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
+
+    // --- NOWE ENDPOINTY SPEŁNIAJĄCE WYMAGANIA ZAAWANSOWANYCH ZAPYTAŃ ---
+
+    @Operation(summary = "Search barbers by specialty (Sorted)", description = "Uses JPQL to fetch barbers by specialty, sorted by name.")
+    @GetMapping("/search/specialty")
+    public ResponseEntity<List<Barber>> getBarbersBySpecialtySorted(@RequestParam String specialty) {
+        logger.info("Wyszukiwanie (JPQL) barberów po specjalizacji: {}", specialty);
+        List<Barber> barbers = barberRepo.findBySpecialtySorted(specialty);
+        return new ResponseEntity<>(barbers, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Search barbers by name fragment (Native SQL)", description = "Uses Native SQL query to find barbers containing the name fragment.")
+    @GetMapping("/search/name")
+    public ResponseEntity<List<Barber>> searchBarbersByNameNative(@RequestParam String nameFragment) {
+        logger.info("Wyszukiwanie (Native SQL) barberów po fragmencie nazwy: {}", nameFragment);
+        List<Barber> barbers = barberRepo.findByNameNative(nameFragment);
+        return new ResponseEntity<>(barbers, HttpStatus.OK);
+    }
 }
 

@@ -2,11 +2,14 @@ package com.example.barberbooking.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.extern.log4j.Log4j2;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
 @Data
+@Log4j2
 @Table(name = "notification_log")
 public class NotificationLog implements Serializable {
 
@@ -33,6 +36,6 @@ public class NotificationLog implements Serializable {
     private String status; // SUCCESS, FAILED
 
     public NotificationLog() {
+        log.debug("NotificationLog entity instance created");
     }
 }
-
