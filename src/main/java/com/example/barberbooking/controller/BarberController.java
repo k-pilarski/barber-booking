@@ -1,21 +1,32 @@
 package com.example.barberbooking.controller;
 
-import com.example.barberbooking.entity.Barber;
-import com.example.barberbooking.repository.BarberRepo;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import jakarta.transaction.Transactional;
+import java.util.List;
+import java.util.Optional;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.Optional;
+import com.example.barberbooking.entity.Barber;
+import com.example.barberbooking.repository.BarberRepo;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.transaction.Transactional;
 
 @CrossOrigin
 @RestController
@@ -33,9 +44,9 @@ public class BarberController {
     })
     @GetMapping
     public ResponseEntity<List<Barber>> getAllBarbers() {
-        logger.info("Wywołanie metody getAllBarbers");
+        logger.info("Method call getAllBarbers");
         List<Barber> barbers = barberRepo.findAll();
-        logger.debug("Liczba barberów: {}", barbers.size());
+        logger.debug("Number of barbers: {}", barbers.size());
         return new ResponseEntity<>(barbers, HttpStatus.OK);
     }
 
@@ -47,12 +58,12 @@ public class BarberController {
     @GetMapping("/{id}")
     public ResponseEntity<Barber> getBarberById(
             @Parameter(description = "ID of the barber to retrieve") @PathVariable Long id) {
-        logger.info("Wywołanie getBarberById dla id: {}", id);
+        logger.info("Calling getBarberById for id: {}", id);
         Optional<Barber> barber = barberRepo.findById(id);
         if (barber.isPresent()) {
             return new ResponseEntity<>(barber.get(), HttpStatus.OK);
         } else {
-            logger.error("Barber o id {} nie znaleziony", id);
+            logger.error("Barber with id {} not found", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -64,7 +75,7 @@ public class BarberController {
     @PostMapping
     public ResponseEntity<Barber> createBarber(
             @Parameter(description = "Barber object to be created") @RequestBody Barber barber) {
-        logger.info("Tworzenie nowego barbera: {}", barber.getName());
+        logger.info("Creating a new barber: {}", barber.getName());
         Barber savedBarber = barberRepo.save(barber);
         return new ResponseEntity<>(savedBarber, HttpStatus.CREATED);
     }
@@ -78,8 +89,8 @@ public class BarberController {
     public ResponseEntity<Barber> updateBarber(
             @Parameter(description = "ID of the barber to update") @PathVariable Long id,
             @Parameter(description = "Updated barber details") @RequestBody Barber barberDetails) {
-        logger.info("Aktualizacja barbera o id: {}", id);
-        logger.debug("Dane do aktualizacji: {}", barberDetails);
+        logger.info("Barber update with id: {}", id);
+        logger.debug("Data to update: {}", barberDetails);
 
         Optional<Barber> optionalBarber = barberRepo.findById(id);
         if (optionalBarber.isPresent()) {
@@ -90,7 +101,7 @@ public class BarberController {
             Barber updatedBarber = barberRepo.save(barber);
             return new ResponseEntity<>(updatedBarber, HttpStatus.OK);
         } else {
-            logger.error("Nie znaleziono barbera o id: {}", id);
+            logger.error("Barber with id: {} not found", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -104,23 +115,21 @@ public class BarberController {
     @DeleteMapping("/{id}")
     public ResponseEntity<HttpStatus> deleteBarber(
             @Parameter(description = "ID of the barber to delete") @PathVariable Long id) {
-        logger.info("Usuwanie barbera o id: {}", id);
+        logger.info("Removing barber with id: {}", id);
         if (barberRepo.existsById(id)) {
             barberRepo.deleteById(id);
-            logger.info("Barber o id {} został usunięty", id);
+            logger.info("Barber with id {} has been deleted", id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else {
-            logger.error("Nie znaleziono barbera do usunięcia o id: {}", id);
+            logger.error("No barber found to remove with id: {}", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
-    // --- NOWE ENDPOINTY SPEŁNIAJĄCE WYMAGANIA ZAAWANSOWANYCH ZAPYTAŃ ---
-
     @Operation(summary = "Search barbers by specialty (Sorted)", description = "Uses JPQL to fetch barbers by specialty, sorted by name.")
     @GetMapping("/search/specialty")
     public ResponseEntity<List<Barber>> getBarbersBySpecialtySorted(@RequestParam String specialty) {
-        logger.info("Wyszukiwanie (JPQL) barberów po specjalizacji: {}", specialty);
+        logger.info("Search (JPQL) for barbers by specialization: {}", specialty);
         List<Barber> barbers = barberRepo.findBySpecialtySorted(specialty);
         return new ResponseEntity<>(barbers, HttpStatus.OK);
     }
@@ -128,7 +137,7 @@ public class BarberController {
     @Operation(summary = "Search barbers by name fragment (Native SQL)", description = "Uses Native SQL query to find barbers containing the name fragment.")
     @GetMapping("/search/name")
     public ResponseEntity<List<Barber>> searchBarbersByNameNative(@RequestParam String nameFragment) {
-        logger.info("Wyszukiwanie (Native SQL) barberów po fragmencie nazwy: {}", nameFragment);
+        logger.info("Searching (Native SQL) for barbers by name fragment: {}", nameFragment);
         List<Barber> barbers = barberRepo.findByNameNative(nameFragment);
         return new ResponseEntity<>(barbers, HttpStatus.OK);
     }

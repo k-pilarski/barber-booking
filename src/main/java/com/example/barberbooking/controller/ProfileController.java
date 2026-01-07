@@ -23,15 +23,12 @@ public class ProfileController {
     public Map<String, String> getProfileInfo() {
         Map<String, String> info = new HashMap<>();
 
-        // Pobieramy aktywne profile
         String[] activeProfiles = env.getActiveProfiles();
         String activeProfile = activeProfiles.length > 0 ? activeProfiles[0] : "undefined";
 
-        // Pobieramy profil domyślny
         String[] defaultProfiles = env.getDefaultProfiles();
         String defaultProfile = defaultProfiles.length > 0 ? defaultProfiles[0] : "undefined";
 
-        // Pobieramy nazwę serwisu bezpośrednio z pliku properties
         String serviceName = env.getProperty("servicename", "undefined");
 
         info.put("activeProfile", activeProfile);

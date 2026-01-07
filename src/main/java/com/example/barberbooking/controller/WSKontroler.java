@@ -2,7 +2,10 @@ package com.example.barberbooking.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @CrossOrigin
@@ -15,10 +18,9 @@ public class WSKontroler {
         this.template = template;
     }
 
-    // Endpoint wywoływany np. przy dodaniu nowego użytkownika
     @PostMapping("/news/{userId}")
     public void publikuj(@PathVariable("userId") int userId) {
-        String message = "Ważna wiadomość dla użytkownika " + userId;
+        String message = "Important message for the user " + userId;
         this.template.convertAndSend("/topic/news" + userId, message);
     }
 }

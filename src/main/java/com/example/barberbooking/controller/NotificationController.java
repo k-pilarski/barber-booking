@@ -3,6 +3,21 @@ package com.example.barberbooking.controller;
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.example.barberbooking.entity.NotificationLog;
 import com.example.barberbooking.repository.NotificationLogRepo;
 
@@ -11,13 +26,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.transaction.Transactional;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 @CrossOrigin
 @RestController
@@ -35,9 +43,9 @@ public class NotificationController {
     })
     @GetMapping
     public ResponseEntity<List<NotificationLog>> getAllNotifications() {
-        logger.info("Wywołanie metody getAllNotifications");
+        logger.info("Calling the getAllNotifications method");
         List<NotificationLog> notifications = notificationLogRepo.findAll();
-        logger.debug("Liczba notyfikacji: {}", notifications.size());
+        logger.debug("Number of notifications: {}", notifications.size());
         return new ResponseEntity<>(notifications, HttpStatus.OK);
     }
 
@@ -51,14 +59,14 @@ public class NotificationController {
             @Parameter(description = "ID of the notification to retrieve")
             @PathVariable Long id) {
 
-        logger.info("Wywołanie getNotificationById dla id: {}", id);
+        logger.info("Calling getNotificationById for id: {}", id);
 
         Optional<NotificationLog> notification = notificationLogRepo.findById(id);
 
         if (notification.isPresent()) {
             return new ResponseEntity<>(notification.get(), HttpStatus.OK);
         } else {
-            logger.error("Notyfikacja o id {} nie została znaleziona", id);
+            logger.error("Notification with id {} not found", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -72,11 +80,11 @@ public class NotificationController {
             @Parameter(description = "Notification object to be created")
             @RequestBody NotificationLog notification) {
 
-        logger.info("Tworzenie nowej notyfikacji");
+        logger.info("Creating a new notification");
 
         NotificationLog savedNotification = notificationLogRepo.save(notification);
 
-        logger.info("Utworzono notyfikację o id: {}", savedNotification.getId());
+        logger.info("Notification with id created: {}", savedNotification.getId());
 
         return new ResponseEntity<>(savedNotification, HttpStatus.CREATED);
     }
@@ -93,7 +101,7 @@ public class NotificationController {
             @Parameter(description = "Updated notification details")
             @RequestBody NotificationLog details) {
 
-        logger.info("Aktualizacja notyfikacji o id: {}", id);
+        logger.info("Notification update with id: {}", id);
 
         Optional<NotificationLog> optionalNotification = notificationLogRepo.findById(id);
 
@@ -108,11 +116,11 @@ public class NotificationController {
 
             NotificationLog updated = notificationLogRepo.save(notification);
 
-            logger.info("Notyfikacja o id {} została zaktualizowana", id);
+            logger.info("The notification with id {} has been updated", id);
 
             return new ResponseEntity<>(updated, HttpStatus.OK);
         } else {
-            logger.error("Nie znaleziono notyfikacji o id {} do aktualizacji", id);
+            logger.error("No notification with id {} found for update", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -128,14 +136,14 @@ public class NotificationController {
             @Parameter(description = "ID of the notification to delete")
             @PathVariable Long id) {
 
-        logger.info("Usuwanie notyfikacji o id: {}", id);
+        logger.info("Deleting notifications with ID: {}", id);
 
         if (notificationLogRepo.existsById(id)) {
             notificationLogRepo.deleteById(id);
-            logger.info("Notyfikacja o id {} została usunięta", id);
+            logger.info("The notification with id {} has been deleted", id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else {
-            logger.error("Nie znaleziono notyfikacji o id {} do usunięcia", id);
+            logger.error("No notification with id {} found to be deleted", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }

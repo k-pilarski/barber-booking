@@ -16,7 +16,6 @@ public class ExternalServiceClient {
     private final WebClient webClient;
     private final String apiPath;
 
-    // Konstruktor wstrzykuje wartości i buduje klienta raz przy starcie aplikacji
     public ExternalServiceClient(
             @Value("${_service.name}") String name,
             @Value("${_service.port}") String port,
@@ -31,19 +30,15 @@ public class ExternalServiceClient {
         log.info("ExternalServiceClient initialized: URL={}, API_PATH={}", serverUrl, apiPath);
     }
 
-    /**
-     * Wywołuje zewnętrzny serwis.
-     */
     public <T, R> R callService(T request, Class<R> responseType) {
         try {
-            // WebClient jest thread-safe, nie potrzebujemy synchronized
             R response = webClient.post()
                     .uri(apiPath)
                     .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .body(Mono.just(request), (Class<T>) request.getClass())
                     .retrieve()
                     .bodyToMono(responseType)
-                    .block(); // Blokujemy, bo aplikacja jest synchroniczna
+                    .block(); 
 
             log.info("Service call successful: {}", response);
             return response;

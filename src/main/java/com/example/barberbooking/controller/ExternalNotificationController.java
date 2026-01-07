@@ -3,6 +3,21 @@ package com.example.barberbooking.controller;
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.example.barberbooking.entity.ExternalNotification;
 import com.example.barberbooking.repository.ExternalNotificationRepo;
 
@@ -11,13 +26,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.transaction.Transactional;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 @CrossOrigin
 @RestController
@@ -35,9 +43,9 @@ public class ExternalNotificationController {
     })
     @GetMapping
     public ResponseEntity<List<ExternalNotification>> getAllExternalNotifications() {
-        logger.info("Wywołanie metody getAllExternalNotifications");
+        logger.info("Method call getAllExternalNotifications");
         List<ExternalNotification> list = externalNotificationRepo.findAll();
-        logger.debug("Liczba zewnętrznych notyfikacji: {}", list.size());
+        logger.debug("Number of external notifications: {}", list.size());
         return new ResponseEntity<>(list, HttpStatus.OK);
     }
 
@@ -50,14 +58,14 @@ public class ExternalNotificationController {
     public ResponseEntity<ExternalNotification> getById(
             @Parameter(description = "ID of the external notification to retrieve") @PathVariable Long id) {
 
-        logger.info("Wywołanie getById dla externalNotification id: {}", id);
+        logger.info("Calling getById for externalNotification id: {}", id);
 
         Optional<ExternalNotification> item = externalNotificationRepo.findById(id);
 
         if (item.isPresent()) {
             return new ResponseEntity<>(item.get(), HttpStatus.OK);
         } else {
-            logger.error("Zewnętrzna notyfikacja o id {} nie została znaleziona", id);
+            logger.error("External notification with id {} not found", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -71,11 +79,11 @@ public class ExternalNotificationController {
             @Parameter(description = "ExternalNotification object to be created")
             @RequestBody ExternalNotification notification) {
 
-        logger.info("Tworzenie nowej zewnętrznej notyfikacji");
+        logger.info("Create a new external notification");
 
         ExternalNotification saved = externalNotificationRepo.save(notification);
 
-        logger.info("Utworzono zewnętrzną notyfikację o id: {}", saved.getId());
+        logger.info("Create a new external notification with id: {}", saved.getId());
 
         return new ResponseEntity<>(saved, HttpStatus.CREATED);
     }
@@ -91,7 +99,7 @@ public class ExternalNotificationController {
             @Parameter(description = "Updated external notification details")
             @RequestBody ExternalNotification details) {
 
-        logger.info("Aktualizacja zewnętrznej notyfikacji o id: {}", id);
+        logger.info("Updating external notification with id: {}", id);
 
         Optional<ExternalNotification> optional = externalNotificationRepo.findById(id);
 
@@ -106,11 +114,11 @@ public class ExternalNotificationController {
 
             ExternalNotification updated = externalNotificationRepo.save(notification);
 
-            logger.info("Zewnętrzna notyfikacja o id {} została zaktualizowana", id);
+            logger.info("The external notification with id {} has been updated", id);
 
             return new ResponseEntity<>(updated, HttpStatus.OK);
         } else {
-            logger.error("Nie znaleziono zewnętrznej notyfikacji o id {} do aktualizacji", id);
+            logger.error("No external notification with id {} found for update", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -125,14 +133,14 @@ public class ExternalNotificationController {
     public ResponseEntity<HttpStatus> delete(
             @Parameter(description = "ID of the external notification to delete") @PathVariable Long id) {
 
-        logger.info("Usuwanie zewnętrznej notyfikacji o id: {}", id);
+        logger.info("Deleting external notification with id: {}", id);
 
         if (externalNotificationRepo.existsById(id)) {
             externalNotificationRepo.deleteById(id);
-            logger.info("Zewnętrzna notyfikacja o id {} została usunięta", id);
+            logger.info("The external notification with id {} has been deleted", id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else {
-            logger.error("Nie znaleziono zewnętrznej notyfikacji o id {} do usunięcia", id);
+            logger.error("No external notification with id {} found to be deleted", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
