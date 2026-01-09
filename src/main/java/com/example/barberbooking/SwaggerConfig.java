@@ -21,4 +21,5 @@ public class SwaggerConfig {
                 .version("1.0")
                 .description("Documentation of the API using Swaager OpenAPI"));
     }
+    
 }
