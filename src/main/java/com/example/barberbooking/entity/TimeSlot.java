@@ -2,11 +2,14 @@ package com.example.barberbooking.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.extern.log4j.Log4j2;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
 @Data
+@Log4j2
 @Table(name = "time_slot")
 public class TimeSlot implements Serializable {
 
@@ -39,5 +42,6 @@ public class TimeSlot implements Serializable {
     public TimeSlot() {
         this.isAvailable = true;
         this.createdAt = LocalDateTime.now();
+        log.debug("TimeSlot entity instance created: {}", this);
     }
 }

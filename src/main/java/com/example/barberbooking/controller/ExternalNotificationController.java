@@ -1,66 +1,146 @@
 package com.example.barberbooking.controller;
 
-import com.example.barberbooking.entity.ExternalNotification;
-import com.example.barberbooking.repository.ExternalNotificationRepo;
+import java.util.List;
+import java.util.Optional;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.barberbooking.entity.ExternalNotification;
+import com.example.barberbooking.repository.ExternalNotificationRepo;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.transaction.Transactional;
-import java.util.List;
-import java.util.Optional;
 
 @CrossOrigin
 @RestController
 @RequestMapping("/external-notifications")
 public class ExternalNotificationController {
 
+    private static final Logger logger = LogManager.getLogger(ExternalNotificationController.class);
+
     @Autowired
     private ExternalNotificationRepo externalNotificationRepo;
 
+    @Operation(summary = "Get all external notifications", description = "Returns a list of all external notifications in the system.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved list")
+    })
     @GetMapping
     public ResponseEntity<List<ExternalNotification>> getAllExternalNotifications() {
+        logger.info("Method call getAllExternalNotifications");
         List<ExternalNotification> list = externalNotificationRepo.findAll();
+        logger.debug("Number of external notifications: {}", list.size());
         return new ResponseEntity<>(list, HttpStatus.OK);
     }
 
+    @Operation(summary = "Get external notification by ID", description = "Returns a single external notification by its ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "External notification found"),
+            @ApiResponse(responseCode = "404", description = "External notification not found")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<ExternalNotification> getById(@PathVariable Long id) {
+    public ResponseEntity<ExternalNotification> getById(
+            @Parameter(description = "ID of the external notification to retrieve") @PathVariable Long id) {
+
+        logger.info("Calling getById for externalNotification id: {}", id);
+
         Optional<ExternalNotification> item = externalNotificationRepo.findById(id);
-        return item.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
-                   .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+
+        if (item.isPresent()) {
+            return new ResponseEntity<>(item.get(), HttpStatus.OK);
+        } else {
+            logger.error("External notification with id {} not found", id);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
+    @Operation(summary = "Create a new external notification", description = "Adds a new external notification to the system.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "External notification successfully created")
+    })
     @PostMapping
-    public ResponseEntity<ExternalNotification> create(@RequestBody ExternalNotification notification) {
+    public ResponseEntity<ExternalNotification> create(
+            @Parameter(description = "ExternalNotification object to be created")
+            @RequestBody ExternalNotification notification) {
+
+        logger.info("Create a new external notification");
+
         ExternalNotification saved = externalNotificationRepo.save(notification);
+
+        logger.info("Create a new external notification with id: {}", saved.getId());
+
         return new ResponseEntity<>(saved, HttpStatus.CREATED);
     }
 
+    @Operation(summary = "Update an existing external notification", description = "Updates details of an existing external notification by ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "External notification successfully updated"),
+            @ApiResponse(responseCode = "404", description = "External notification not found")
+    })
     @PutMapping("/{id}")
-    public ResponseEntity<ExternalNotification> update(@PathVariable Long id, @RequestBody ExternalNotification details) {
+    public ResponseEntity<ExternalNotification> update(
+            @Parameter(description = "ID of the external notification to update") @PathVariable Long id,
+            @Parameter(description = "Updated external notification details")
+            @RequestBody ExternalNotification details) {
+
+        logger.info("Updating external notification with id: {}", id);
+
         Optional<ExternalNotification> optional = externalNotificationRepo.findById(id);
+
         if (optional.isPresent()) {
             ExternalNotification notification = optional.get();
+
             notification.setAppointment(details.getAppointment());
             notification.setTargetService(details.getTargetService());
             notification.setPayload(details.getPayload());
             notification.setStatus(details.getStatus());
             notification.setCreatedAt(details.getCreatedAt());
+
             ExternalNotification updated = externalNotificationRepo.save(notification);
+
+            logger.info("The external notification with id {} has been updated", id);
+
             return new ResponseEntity<>(updated, HttpStatus.OK);
         } else {
+            logger.error("No external notification with id {} found for update", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
+    @Operation(summary = "Delete an external notification", description = "Deletes an external notification by its ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "External notification successfully deleted"),
+            @ApiResponse(responseCode = "404", description = "External notification not found")
+    })
     @Transactional
     @DeleteMapping("/{id}")
-    public ResponseEntity<HttpStatus> delete(@PathVariable Long id) {
+    public ResponseEntity<HttpStatus> delete(
+            @Parameter(description = "ID of the external notification to delete") @PathVariable Long id) {
+
+        logger.info("Deleting external notification with id: {}", id);
+
         if (externalNotificationRepo.existsById(id)) {
             externalNotificationRepo.deleteById(id);
+            logger.info("The external notification with id {} has been deleted", id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else {
+            logger.error("No external notification with id {} found to be deleted", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }

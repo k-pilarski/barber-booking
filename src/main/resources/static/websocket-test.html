@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Test</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+<h2>Test WebSocket/STOMP</h2>
+
+<button onclick="sendMessage()">Wyślij testową wiadomość</button>
+
+<div id="log" style="margin-top: 20px; border:1px solid #ccc; padding:10px; width:400px; height:200px; overflow:auto;">
+    <strong>Log:</strong><br>
+</div>
+
+<script>
+    var socket = new SockJS('http://localhost:8081/my-websocket');
+    var stompClient = Stomp.over(socket);
+
+    stompClient.connect({}, function(frame) {
+        logMessage('Połączono z WebSocket: ' + frame);
+
+        stompClient.subscribe('/topic/news1', function(message) {
+            logMessage('Otrzymano wiadomość: ' + message.body);
+        });
+    });
+
+    function sendMessage() {
+        fetch('http://localhost:8081/news/1', { method: 'POST' })
+            .then(() => logMessage('Wywołano endpoint /news/1'))
+            .catch(err => logMessage('Błąd wywołania endpointu: ' + err));
+    }
+
+    function logMessage(msg) {
+        var logDiv = document.getElementById('log');
+        logDiv.innerHTML += msg + '<br>';
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+</script>
+</body>
+</html>
