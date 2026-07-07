@@ -16,14 +16,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.barberbooking.entity.TimeSlot;
-import com.example.barberbooking.repository.TimeSlotRepo;
+import com.example.barberbooking.dto.TimeSlotDto;
+import com.example.barberbooking.service.TimeSlotService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import jakarta.transaction.Transactional;
 import lombok.extern.log4j.Log4j2;
 
 @CrossOrigin
@@ -33,17 +32,17 @@ import lombok.extern.log4j.Log4j2;
 public class TimeSlotController {
 
     @Autowired
-    private TimeSlotRepo timeSlotRepo;
+    private TimeSlotService timeSlotService;
 
     @Operation(summary = "Get all time slots", description = "Returns a list of all time slots in the system.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Successfully retrieved list")
     })
     @GetMapping
-    public ResponseEntity<List<TimeSlot>> getAllTimeSlots() {
-        log.info("Request: getAllTimeSlots()");
-        List<TimeSlot> slots = timeSlotRepo.findAll();
-        log.debug("Retrieved {} time slots", slots.size());
+    public ResponseEntity<List<TimeSlotDto>> getAllTimeSlots() {
+        log.info("Żądanie: getAllTimeSlots()");
+        List<TimeSlotDto> slots = timeSlotService.getAllTimeSlots();
+        log.debug("Pobrano {} przedziałów czasowych", slots.size());
         return new ResponseEntity<>(slots, HttpStatus.OK);
     }
 
@@ -53,17 +52,17 @@ public class TimeSlotController {
         @ApiResponse(responseCode = "404", description = "Time slot not found")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<TimeSlot> getTimeSlotById(
+    public ResponseEntity<TimeSlotDto> getTimeSlotById(
             @Parameter(description = "ID of the time slot to retrieve") @PathVariable Long id) {
 
-        log.info("Request: getTimeSlotById({})", id);
-        Optional<TimeSlot> slot = timeSlotRepo.findById(id);
+        log.info("Żądanie: getTimeSlotById({})", id);
+        Optional<TimeSlotDto> slot = timeSlotService.getTimeSlotById(id);
 
         if (slot.isPresent()) {
-            log.debug("Time slot {} found", id);
+            log.debug("Znaleziono przedział czasowy {}", id);
             return new ResponseEntity<>(slot.get(), HttpStatus.OK);
         } else {
-            log.warn("Time slot {} NOT found", id);
+            log.warn("NIE znaleziono przedziału czasowego {}", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -73,14 +72,12 @@ public class TimeSlotController {
         @ApiResponse(responseCode = "201", description = "Time slot successfully created")
     })
     @PostMapping
-    public ResponseEntity<TimeSlot> createTimeSlot(
-            @Parameter(description = "Time slot object to be created") @RequestBody TimeSlot slot) {
+    public ResponseEntity<TimeSlotDto> createTimeSlot(
+            @Parameter(description = "Time slot object to be created") @RequestBody TimeSlotDto slotDto) {
 
-        log.info("Request: createTimeSlot()");
-        log.debug("TimeSlot data: {}", slot);
-
-        TimeSlot savedSlot = timeSlotRepo.save(slot);
-        log.info("Time slot created with ID {}", savedSlot.getId());
+        log.info("Żądanie: createTimeSlot()");
+        TimeSlotDto savedSlot = timeSlotService.createTimeSlot(slotDto);
+        log.info("Utworzono przedział czasowy o ID {}", savedSlot.getId());
 
         return new ResponseEntity<>(savedSlot, HttpStatus.CREATED);
     }
@@ -91,27 +88,18 @@ public class TimeSlotController {
         @ApiResponse(responseCode = "404", description = "Time slot not found")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<TimeSlot> updateTimeSlot(
+    public ResponseEntity<TimeSlotDto> updateTimeSlot(
             @Parameter(description = "ID of the time slot to update") @PathVariable Long id,
-            @Parameter(description = "Updated time slot details") @RequestBody TimeSlot slotDetails) {
+            @Parameter(description = "Updated time slot details") @RequestBody TimeSlotDto slotDetails) {
 
-        log.info("Request: updateTimeSlot({})", id);
-        log.debug("Update data: {}", slotDetails);
+        log.info("Żądanie: updateTimeSlot({})", id);
 
-        Optional<TimeSlot> optionalSlot = timeSlotRepo.findById(id);
-        if (optionalSlot.isPresent()) {
-            TimeSlot slot = optionalSlot.get();
-            slot.setBarber(slotDetails.getBarber());
-            slot.setStartTime(slotDetails.getStartTime());
-            slot.setEndTime(slotDetails.getEndTime());
-            slot.setIsAvailable(slotDetails.getIsAvailable());
-
-            TimeSlot updatedSlot = timeSlotRepo.save(slot);
-            log.info("Time slot {} updated successfully", id);
-
-            return new ResponseEntity<>(updatedSlot, HttpStatus.OK);
+        Optional<TimeSlotDto> updatedSlot = timeSlotService.updateTimeSlot(id, slotDetails);
+        if (updatedSlot.isPresent()) {
+            log.info("Przedział czasowy {} pomyślnie zaktualizowany", id);
+            return new ResponseEntity<>(updatedSlot.get(), HttpStatus.OK);
         } else {
-            log.warn("Time slot {} NOT found – cannot update", id);
+            log.warn("NIE znaleziono przedziału czasowego {} – nie można zaktualizować", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -121,19 +109,17 @@ public class TimeSlotController {
         @ApiResponse(responseCode = "204", description = "Time slot successfully deleted"),
         @ApiResponse(responseCode = "404", description = "Time slot not found")
     })
-    @Transactional
     @DeleteMapping("/{id}")
     public ResponseEntity<HttpStatus> deleteTimeSlot(
             @Parameter(description = "ID of the time slot to delete") @PathVariable Long id) {
 
-        log.info("Request: deleteTimeSlot({})", id);
+        log.info("Żądanie: deleteTimeSlot({})", id);
 
-        if (timeSlotRepo.existsById(id)) {
-            timeSlotRepo.deleteById(id);
-            log.warn("Time slot {} deleted", id);
+        if (timeSlotService.deleteTimeSlot(id)) {
+            log.info("Usunięto przedział czasowy {}", id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else {
-            log.warn("Time slot {} NOT found – cannot delete", id);
+            log.warn("NIE znaleziono przedziału czasowego {} – nie można usunąć", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }

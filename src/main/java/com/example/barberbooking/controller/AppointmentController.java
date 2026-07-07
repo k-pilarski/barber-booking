@@ -3,6 +3,7 @@ package com.example.barberbooking.controller;
 import java.util.List;
 import java.util.Optional;
 
+import jakarta.validation.Valid;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,14 +19,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.barberbooking.entity.Appointment;
-import com.example.barberbooking.repository.AppointmentRepo;
+import com.example.barberbooking.dto.AppointmentCreateRequest;
+import com.example.barberbooking.dto.AppointmentDto;
+import com.example.barberbooking.service.AppointmentService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import jakarta.transaction.Transactional;
 
 @CrossOrigin
 @RestController
@@ -35,17 +36,17 @@ public class AppointmentController {
     private static final Logger logger = LogManager.getLogger(AppointmentController.class);
 
     @Autowired
-    private AppointmentRepo appointmentRepo;
+    private AppointmentService appointmentService;
 
     @Operation(summary = "Get all appointments", description = "Returns a list of all appointments in the system.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved list")
     })
     @GetMapping
-    public ResponseEntity<List<Appointment>> getAllAppointments() {
-        logger.info("Method call getAllAppointments");
-        List<Appointment> appointments = appointmentRepo.findAll();
-        logger.debug("Number of visits: {}", appointments.size());
+    public ResponseEntity<List<AppointmentDto>> getAllAppointments() {
+        logger.info("Wywołanie metody getAllAppointments");
+        List<AppointmentDto> appointments = appointmentService.getAllAppointments();
+        logger.debug("Liczba wizyt: {}", appointments.size());
         return new ResponseEntity<>(appointments, HttpStatus.OK);
     }
 
@@ -55,17 +56,16 @@ public class AppointmentController {
             @ApiResponse(responseCode = "404", description = "Appointment not found")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<Appointment> getAppointmentById(
+    public ResponseEntity<AppointmentDto> getAppointmentById(
             @Parameter(description = "ID of the appointment to retrieve") @PathVariable Long id) {
 
-        logger.info("Calling getAppointmentById for id: {}", id);
-
-        Optional<Appointment> appointment = appointmentRepo.findById(id);
+        logger.info("Wywołanie getAppointmentById dla id: {}", id);
+        Optional<AppointmentDto> appointment = appointmentService.getAppointmentById(id);
 
         if (appointment.isPresent()) {
             return new ResponseEntity<>(appointment.get(), HttpStatus.OK);
         } else {
-            logger.error("The visit with id {} was not found", id);
+            logger.error("Wizyta o id {} nie została znaleziona", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -75,12 +75,12 @@ public class AppointmentController {
             @ApiResponse(responseCode = "201", description = "Appointment successfully created")
     })
     @PostMapping
-    public ResponseEntity<Appointment> createAppointment(
-            @Parameter(description = "Appointment object to be created") @RequestBody Appointment appointment) {
+    public ResponseEntity<AppointmentDto> createAppointment(
+            @Parameter(description = "Appointment object to be created") @Valid @RequestBody AppointmentCreateRequest request) {
 
-        logger.info("Creating a new visit");
-        Appointment savedAppointment = appointmentRepo.save(appointment);
-        logger.info("A visit with id was created: {}", savedAppointment.getId());
+        logger.info("Tworzenie nowej wizyty");
+        AppointmentDto savedAppointment = appointmentService.createAppointment(request);
+        logger.info("Utworzono wizytę o id: {}", savedAppointment.getId());
 
         return new ResponseEntity<>(savedAppointment, HttpStatus.CREATED);
     }
@@ -91,31 +91,19 @@ public class AppointmentController {
             @ApiResponse(responseCode = "404", description = "Appointment not found")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<Appointment> updateAppointment(
+    public ResponseEntity<AppointmentDto> updateAppointment(
             @Parameter(description = "ID of the appointment to update") @PathVariable Long id,
-            @Parameter(description = "Updated appointment details") @RequestBody Appointment appointmentDetails) {
+            @Parameter(description = "Updated appointment details") @Valid @RequestBody AppointmentCreateRequest request) {
 
-        logger.info("Update visit with id: {}", id);
+        logger.info("Aktualizacja wizyty o id: {}", id);
 
-        Optional<Appointment> optionalAppointment = appointmentRepo.findById(id);
+        Optional<AppointmentDto> updatedAppointment = appointmentService.updateAppointment(id, request);
 
-        if (optionalAppointment.isPresent()) {
-            Appointment appointment = optionalAppointment.get();
-
-            appointment.setBarber(appointmentDetails.getBarber());
-            appointment.setStartTime(appointmentDetails.getStartTime());
-            appointment.setEndTime(appointmentDetails.getEndTime());
-            appointment.setClientName(appointmentDetails.getClientName());
-            appointment.setClientPhone(appointmentDetails.getClientPhone());
-            appointment.setStatus(appointmentDetails.getStatus());
-
-            Appointment updatedAppointment = appointmentRepo.save(appointment);
-
-            logger.info("The visit with id {} has been updated", id);
-
-            return new ResponseEntity<>(updatedAppointment, HttpStatus.OK);
+        if (updatedAppointment.isPresent()) {
+            logger.info("Wizyta o id {} została zaktualizowana", id);
+            return new ResponseEntity<>(updatedAppointment.get(), HttpStatus.OK);
         } else {
-            logger.error("No visit with id {} found for update", id);
+            logger.error("Nie znaleziono wizyty o id {} do aktualizacji", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
@@ -125,19 +113,17 @@ public class AppointmentController {
             @ApiResponse(responseCode = "204", description = "Appointment successfully deleted"),
             @ApiResponse(responseCode = "404", description = "Appointment not found")
     })
-    @Transactional
     @DeleteMapping("/{id}")
     public ResponseEntity<HttpStatus> deleteAppointment(
             @Parameter(description = "ID of the appointment to delete") @PathVariable Long id) {
 
-        logger.info("Deleting visit with id: {}", id);
+        logger.info("Usuwanie wizyty o id: {}", id);
 
-        if (appointmentRepo.existsById(id)) {
-            appointmentRepo.deleteById(id);
-            logger.info("The visit with id {} has been deleted", id);
+        if (appointmentService.deleteAppointment(id)) {
+            logger.info("Wizyta o id {} została usunięta", id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else {
-            logger.error("No visit found with id {} to be deleted", id);
+            logger.error("Nie znaleziono wizyty o id {} do usunięcia", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }

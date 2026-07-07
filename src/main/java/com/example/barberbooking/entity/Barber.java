@@ -1,17 +1,19 @@
 package com.example.barberbooking.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.ToString;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.log4j.Log4j2;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
-@Data
+@Getter
+@Setter
 @Log4j2
 @Table(name = "barber")
 public class Barber implements Serializable {
@@ -33,16 +35,27 @@ public class Barber implements Serializable {
     private String phone;
 
     @OneToMany(mappedBy = "barber", cascade = CascadeType.ALL)
-    @ToString.Exclude
     @JsonIgnore
     private List<TimeSlot> timeSlots;
 
     @OneToMany(mappedBy = "barber", cascade = CascadeType.ALL)
-    @ToString.Exclude
     @JsonIgnore
     private List<Appointment> appointments;
 
     public Barber() {
-        log.debug("Barber entity instance created");
+        log.debug("Utworzono instancję encji Barber");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Barber)) return false;
+        Barber barber = (Barber) o;
+        return id != null && id.equals(barber.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }
