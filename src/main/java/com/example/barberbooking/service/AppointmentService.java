@@ -25,7 +25,7 @@ public class AppointmentService {
 
     @Transactional(readOnly = true)
     public List<AppointmentDto> getAllAppointments() {
-        log.info("Pobieranie wszystkich wizyt");
+        log.info("Pobieranie wszystkich wizyt (zoptymalizowane Eager/EntityGraph)");
         return appointmentRepo.findAll().stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
@@ -39,10 +39,21 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentDto createAppointment(AppointmentCreateRequest request) {
-        log.info("Tworzenie nowej wizyty dla barbera id: {}", request.getBarberId());
+        log.info("Tworzenie nowej wizyty dla barbera id: {} w czasie od {} do {}", 
+                request.getBarberId(), request.getStartTime(), request.getEndTime());
         
-        Barber barber = barberRepo.findById(request.getBarberId())
+        // 1. Zablokowanie Barbera (PESSIMISTIC_WRITE) na czas sprawdzania i zapisu wizyty
+        Barber barber = barberRepo.findByIdWithPessimisticLock(request.getBarberId())
                 .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono barbera o id: " + request.getBarberId()));
+
+        // 2. Walidacja kolizji terminów (Double-Booking), dla nowej wizyty wykluczamy id = -1
+        int overlapping = appointmentRepo.countOverlappingAppointments(
+                barber.getId(), request.getStartTime(), request.getEndTime(), -1L);
+
+        if (overlapping > 0) {
+            log.warn("Odrzucono rezerwację z powodu nakładających się terminów (barber id: {})", barber.getId());
+            throw new IllegalStateException("Wybrany termin jest już zajęty przez inną wizytę.");
+        }
 
         Appointment appointment = new Appointment();
         appointment.setBarber(barber);
@@ -52,7 +63,7 @@ public class AppointmentService {
         appointment.setClientPhone(request.getClientPhone());
 
         Appointment saved = appointmentRepo.save(appointment);
-        log.info("Utworzono wizytę o id: {}", saved.getId());
+        log.info("Utworzono i bezpiecznie zapisano wizytę o id: {}", saved.getId());
         
         return mapToDto(saved);
     }
@@ -61,8 +72,18 @@ public class AppointmentService {
     public Optional<AppointmentDto> updateAppointment(Long id, AppointmentCreateRequest request) {
         log.info("Aktualizacja wizyty o id: {}", id);
         return appointmentRepo.findById(id).map(appointment -> {
-            Barber barber = barberRepo.findById(request.getBarberId())
+            
+            // Zablokowanie Barbera pesymistycznie
+            Barber barber = barberRepo.findByIdWithPessimisticLock(request.getBarberId())
                 .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono barbera o id: " + request.getBarberId()));
+            
+            // Walidacja kolizji terminów (wykluczamy aktualizowaną wizytę po ID)
+            int overlapping = appointmentRepo.countOverlappingAppointments(
+                barber.getId(), request.getStartTime(), request.getEndTime(), id);
+                                    
+            if (overlapping > 0) {
+                 throw new IllegalStateException("Nowy termin jest już zajęty przez inną wizytę.");
+            }
             
             appointment.setBarber(barber);
             appointment.setStartTime(request.getStartTime());
