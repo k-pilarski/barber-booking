@@ -38,17 +38,17 @@ public class ExternalServiceClient {
                     .body(Mono.just(request), (Class<T>) request.getClass())
                     .retrieve()
                     .bodyToMono(responseType)
-                    .block(); 
+                    .block(java.time.Duration.ofSeconds(5)); // Dodano timeout 5s, by nie blokować wątku bez końca
 
-            log.info("Service call successful: {}", response);
+            log.info("Wywołanie serwisu płatności zakończone sukcesem: {}", response);
             return response;
 
         } catch (WebClientResponseException e) {
-            log.error("Service call failed: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
-            return null;
+            log.error("Błąd podczas wywołania serwisu płatności: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new com.example.barberbooking.exception.PaymentGatewayException("Awaria zewnętrznej bramki płatności. Spróbuj ponownie później.", e);
         } catch (Exception e) {
-            log.error("Service call exception", e);
-            return null;
+            log.error("Nieoczekiwany błąd komunikacji z serwisem zewnętrznym", e);
+            throw new com.example.barberbooking.exception.PaymentGatewayException("Brak odpowiedzi od zewnętrznej bramki płatności (timeout lub błąd sieci).", e);
         }
     }
 
